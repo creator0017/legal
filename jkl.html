@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Legal GPS - WhatsApp Prototype</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+        :root {
+            --wa-green: #075E54;
+            --wa-light-green: #25D366;
+            --wa-background: #E5DDD5;
+            --user-bubble: #DCF8C6;
+            --bot-bubble: #FFFFFF;
+            --text-primary: #303030;
+            --text-secondary: #667781;
+            --primary-accent: #34B7F1;
+            --risk-high: #EF4444;
+            --risk-medium: #F59E0B;
+            --risk-low: #10B981;
+            --border-color: #E5E7EB;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .phone-container {
+            width: min(90vw, 375px); /* Responsive width up to a max of 375px */
+            aspect-ratio: 7.16 / 14.67; /* Matches the 14.67x7.16cm ratio */
+            height: auto;     /* Height is calculated automatically */
+            background-color: var(--wa-background);
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            border-radius: 40px; /* A good radius for the shape */
+            box-shadow: 0px 20px 60px -10px rgba(0, 0, 0, 0.2), 0px 0px 0px 12px #1A1A1A;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .wa-header {
+            padding: 50px 16px 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: var(--wa-green);
+            color: white;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 5;
+        }
+        .wa-profile {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            gap: 3px;
+        }
+        .wa-profile-dot { width: 8px; height: 8px; border-radius: 50%;}
+        .dot-green { background-color: var(--risk-low); }
+        .dot-yellow { background-color: var(--risk-medium); }
+        .dot-red { background-color: var(--risk-high); }
+        .wa-info { flex: 1; }
+        .wa-name { font-weight: 600; font-size: 17px; }
+        .wa-status { font-size: 13px; opacity: 0.9; }
+        
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message {
+            max-width: 90%;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        
+        @keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
+
+        .message.bot { align-self: flex-start; }
+        .message.user { align-self: flex-end; }
+        .message-bubble {
+            padding: 8px 12px;
+            border-radius: 8px;
+            line-height: 1.5;
+            font-size: 14.5px;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+        }
+        .message.bot .message-bubble { background-color: var(--bot-bubble); border-top-left-radius: 0; }
+        .message.user .message-bubble { background-color: var(--user-bubble); border-top-right-radius: 0; }
+        .message-time { font-size: 11px; color: var(--text-secondary); margin-top: 2px; text-align: right; }
+
+        .quick-replies { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .quick-reply-btn {
+            padding: 8px 16px; background: var(--bot-bubble); border: 1px solid var(--border-color);
+            color: var(--primary-accent); border-radius: 20px; font-size: 14px; cursor: pointer;
+            transition: all 0.2s; font-weight: 500;
+        }
+        .quick-reply-btn:hover { background-color: #E2F2FF; }
+
+        .card-container { background: var(--bot-bubble); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 1px rgba(0,0,0,0.08); }
+        .card-header { padding: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; background: #F3F4F6; }
+        .card-body { padding: 12px; }
+
+        .analysis-section { border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; }
+        .analysis-section:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+        .analysis-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px; }
+
+        .risk-summary-multi { display: flex; flex-direction: column; gap: 8px; }
+        .party-risk-item { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .party-risk-dots { display: flex; gap: 4px; }
+        .party-risk-dots span { width: 10px; height: 10px; border-radius: 50%;}
+
+        .comparison-chart { display: flex; justify-content: space-around; align-items: flex-end; height: 80px; }
+        .chart-bar-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .chart-bar { width: 40px; background: #D1D5DB; border-radius: 4px 4px 0 0; }
+        .chart-bar.yours { background: var(--risk-medium); }
+        .chart-label { font-size: 10px; color: var(--text-secondary); margin-top: 5px; }
+
+        .negotiation-playbook { background: #F3F4F6; border-radius: 8px; padding: 12px; margin-top: 8px; }
+        .playbook-text { background: var(--bot-bubble); border: 1px dashed var(--border-color); border-radius: 6px; padding: 10px; font-size: 14px; }
+        
+        .audio-player { display: flex; align-items: center; gap: 10px; background: #F3F4F6; border-radius: 25px; padding: 6px; margin-top: 8px; cursor: pointer; }
+        .audio-play-btn { width: 28px; height: 28px; background: var(--primary-accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .audio-wave { flex: 1; height: 2px; background: var(--text-secondary); opacity: 0.5; }
+
+        .template-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+        .template-card { padding: 12px; background: var(--bot-bubble); border: 1px solid var(--border-color); border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .template-card:hover { border-color: var(--primary-accent); }
+        .template-icon { font-size: 24px; margin-bottom: 6px; }
+        .template-name { font-size: 12px; color: var(--text-primary); font-weight: 500; }
+        
+        .signature-section { background: #E2F2FF; color: #1E40AF; padding: 16px; border-radius: 8px; text-align: center; margin-top: 8px; }
+        .signature-btn { margin-top: 10px; padding: 8px 20px; background: var(--primary-accent); color: white; border: none; border-radius: 20px; font-weight: 500; cursor: pointer; }
+
+        .deadline-alert { background: #FEFBEB; border-left: 4px solid var(--risk-medium); padding: 10px; border-radius: 5px; margin-top: 8px; font-size: 13.5px;}
+        .deadline-alert ul { list-style: none; padding-left: 0; margin-top: 6px; }
+
+        .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 12px 10px;}
+        .typing-dot { width: 7px; height: 7px; background-color: #A1A1AA; border-radius: 50%; animation: typing 1.4s infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+
+        .wa-input-area {
+            flex-shrink: 0; padding: 8px 12px; background-color: #F0F2F5;
+            display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-color);
+        }
+        .wa-input-field { flex: 1; display: flex; align-items: center; background-color: var(--bot-bubble); border-radius: 20px; padding: 8px 12px; }
+        .wa-input-field input { flex: 1; border: none; outline: none; background: transparent; font-size: 15px; font-family: 'Inter', sans-serif; }
+        .input-icon { font-size: 22px; color: var(--text-secondary); cursor: pointer; }
+        .wa-mic-button { width: 40px; height: 40px; background-color: var(--wa-green); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <div class="wa-header">
+            <div class="wa-profile">
+                <span class="wa-profile-dot dot-green"></span>
+                <span class="wa-profile-dot dot-yellow"></span>
+                <span class="wa-profile-dot dot-red"></span>
+            </div>
+            <div class="wa-info">
+                <div class="wa-name">Legal GPS</div>
+                <div class="wa-status">online</div>
+            </div>
+        </div>
+        <div class="chat-area" id="chatArea">
+            <!-- Messages are dynamically inserted here -->
+        </div>
+        <div class="wa-input-area">
+            <div class="input-icon">😀</div>
+            <div class="wa-input-field">
+                <input type="text" placeholder="Message">
+                <div class="input-icon" style="margin-left: 8px;">📎</div>
+            </div>
+            <div class="wa-mic-button">🎤</div>
+        </div>
+    </div>
+
+    <script>
+        const chatArea = document.getElementById('chatArea');
+        let step = 0;
+
+        function scrollToBottom() {
+            chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
+        }
+
+        function createMessage(content, type = 'bot', time, id = '') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            if (id) messageDiv.id = id;
+            messageDiv.innerHTML = `<div class="message-bubble">${content}</div><div class="message-time">${time}</div>`;
+            chatArea.appendChild(messageDiv);
+            scrollToBottom();
+            return messageDiv;
+        }
+
+        function showTyping(callback) {
+            const typingMsg = createMessage('<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>', 'bot', '');
+            setTimeout(() => {
+                typingMsg.remove();
+                callback();
+            }, Math.random() * 1200 + 800);
+        }
+
+        const conversation = [
+            // Frame 1: Welcome
+            () => createMessage(`Hi! I'm Legal GPS, your AI legal assistant. I work like a GPS, a personal lawyer, and an assistant to guide you through any contract. <br><br>Ready to start?
+                <div class="quick-replies">
+                    <button class="quick-reply-btn" onclick="nextStep()">Yes, let's begin!</button>
+                </div>`, 'bot', '9:30 AM'),
+            
+            // Frame 2: Context-Aware Onboarding
+            () => {
+                createMessage(`Yes, let's begin!`, 'user', '9:31 AM');
+                showTyping(() => {
+                    createMessage(`Great! To provide the most accurate, context-aware risk warnings (⚠️), please tell me your primary role.
+                        <div class="quick-replies">
+                            <button class="quick-reply-btn" onclick="nextStep('Freelancer')">💼 Freelancer</button>
+                            <button class="quick-reply-btn" onclick="nextStep('Tenant')">🔑 Tenant</button>
+                            <button class="quick-reply-btn" onclick="nextStep('Employee')">👤 Employee</button>
+                        </div>`, 'bot', '9:31 AM');
+                });
+            },
+
+            // Frame 3: Multi-Party Check
+            (role) => {
+                createMessage(`I'm a Freelancer`, 'user', '9:32 AM');
+                showTyping(() => {
+                    createMessage(`Perfect. My analysis will be tailored for a freelancer (🧱). <br><br>Now, please upload your document. Does this contract involve more than just you and the client?
+                        <div class="quick-replies">
+                             <button class="quick-reply-btn" onclick="nextStep('multi-party')">Yes, it's multi-party</button>
+                             <button class="quick-reply-btn" onclick="nextStep('multi-party')">No, just us</button>
+                        </div>`, 'bot', '9:32 AM');
+                });
+            },
+            
+            // Frame 4: The Full Analysis
+            () => {
+                createMessage(`Yes, it's multi-party`, 'user', '9:33 AM');
+                showTyping(() => {
+                    createMessage(`✅ Analysis complete! Here is your breakdown for 'Client_Agreement.pdf':
+                        <div class="card-container" style="margin-top:8px;">
+                            <div class="card-body">
+                                <div class="analysis-section">
+                                    <div class="analysis-title">🟢🟡🔴 VISUAL HEATMAP</div>
+                                    <div class="risk-summary-multi">
+                                        <div class="party-risk-item"><span>For You (Priya)</span> <div class="party-risk-dots"><span style="background:var(--risk-high)"></span><span style="background:var(--risk-medium)"></span><span style="background:var(--risk-medium)"></span></div></div>
+                                        <div class="party-risk-item"><span>For Studio X</span> <div class="party-risk-dots"><span style="background:var(--risk-medium)"></span></div></div>
+                                    </div>
+                                </div>
+                                <div class="analysis-section">
+                                    <div class="analysis-title">‼️ LEGAL COMPLIANCE ALERT</div>
+                                    <p style="font-size:13.5px;"><strong>CRITICAL:</strong> The "Work for Hire" clause may violate the proposed <strong>2025 Indian Labour Code amendments</strong>.</p>
+                                </div>
+                                <div class="analysis-section">
+                                    <div class="analysis-title">🧱 INDUSTRY-SPECIFIC INTELLIGENCE</div>
+                                    <p style="font-size:13.5px;">The Non-Compete clause is unusually restrictive for the <strong>graphic design industry in Bengaluru</strong>.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="quick-replies">
+                            <button class="quick-reply-btn" onclick="nextStep()">Examine my 🔴 High Risk</button>
+                        </div>`, 'bot', '9:34 AM');
+                });
+            },
+
+            // Frame 5: Deep Dive
+            () => {
+                createMessage(`Examine my 🔴 High Risk`, 'user', '9:35 AM');
+                showTyping(() => {
+                     createMessage(`<div class="card-container">
+                        <div class="card-header">🔴 High Risk: Payment Terms</div>
+                        <div class="card-body">
+                            <div class="analysis-section">
+                                <div class="analysis-title">📊 MARKET DATA COMPARISON</div>
+                                <p style="font-size:13.5px; margin-bottom:10px;">This contract's "Net 60" term is <strong>twice as long as the market standard</strong> (Net 30).</p>
+                                <div class="comparison-chart">
+                                    <div class="chart-bar-wrapper">
+                                        <div class="chart-bar" style="height: 50%;"></div>
+                                        <div class="chart-label">Market Std. (Net 30)</div>
+                                    </div>
+                                    <div class="chart-bar-wrapper">
+                                        <div class="chart-bar yours" style="height: 100%;"></div>
+                                        <div class="chart-label">This Contract (Net 60)</div>
+                                    </div>
+                                </div>
+                            </div>
+                             <div class="analysis-section">
+                                <div class="analysis-title">🎯 ACTIONABLE ADVICE</div>
+                                <p style="font-size:13.5px;">My recommendation is to <strong>NEGOTIATE</strong> this term before signing.</p>
+                            </div>
+                             <div class="analysis-section">
+                                <div class="analysis-title">🎧 AUDIO EXPLANATION</div>
+                                <div class="audio-player" onclick="alert('Playing audio explanation in Hindi...')">
+                                    <div class="audio-play-btn">▶</div>
+                                    <div class="audio-wave"></div>
+                                    <div style="font-size:12px; color: var(--text-secondary);">0:45</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="quick-replies">
+                        <button class="quick-reply-btn" onclick="nextStep('negotiate')">Help me negotiate</button>
+                        <button class="quick-reply-btn" onclick="nextStep('templates')">Find a better template</button>
+                    </div>`, 'bot', '9:36 AM');
+                });
+            },
+            
+            // Frame 6A & 6B
+            (choice) => {
+                 if (choice === 'negotiate') {
+                    createMessage(`Help me negotiate`, 'user', '9:37 AM');
+                     showTyping(() => {
+                        createMessage(`Here is a professional response you can send to your client:
+                        <div class="negotiation-playbook">
+                            <div class="playbook-text">"Thank you for the contract. My standard payment term is Net 30 to ensure smooth project cash flow. Would it be possible to amend this clause?"</div>
+                        </div>
+                        <div class="quick-replies">
+                           <button class="quick-reply-btn" onclick="nextStep()">My client agreed!</button>
+                        </div>`, 'bot', '9:38 AM');
+                    });
+                } else {
+                     createMessage(`Find a better template`, 'user', '9:37 AM');
+                     showTyping(() => {
+                         createMessage(`This contract has several unfair clauses. A better starting point is a vetted template from our library (📚).`, 'bot', '9:38 AM');
+                         setTimeout(() => {
+                             createMessage(`<div class="card-container">
+                                 <div class="card-header">📚 Template Library</div>
+                                 <div class="card-body">
+                                     <p style="font-size:13.5px; margin-bottom:12px;">Here are some fairer templates for you:</p>
+                                     <div class="template-grid">
+                                       <div class="template-card" onclick="alert('Downloading fair Design Contract template...')"><div class="template-icon">🎨</div><div class="template-name">Design Contract</div></div>
+                                       <div class="template-card" onclick="alert('Downloading fair Writing Contract template...')"><div class="template-icon">✍️</div><div class="template-name">Writing Contract</div></div>
+                                     </div>
+                                 </div>
+                             </div>`, 'bot', '9:38 AM');
+                         }, 800);
+                     });
+                }
+            },
+
+            // Frame 7: Digital Signature
+             () => {
+                 createMessage(`My client agreed!`, 'user', '10:15 AM');
+                 showTyping(() => {
+                    createMessage(`Fantastic! The final version is now ready to be signed.
+                    <div class="signature-section">
+                        ✒️ <strong>Ready for Digital Signature</strong>
+                        <p style="font-size:13px; opacity:0.9;">I can prepare this document for a secure, legally-binding signature for all three parties.</p>
+                        <button class="signature-btn" onclick="nextStep()">Initiate Signing Process</button>
+                    </div>`, 'bot', '10:16 AM');
+                 });
+            },
+
+            // Frame 8: Post-Signature Management
+            () => {
+                showTyping(() => {
+                    createMessage(`✅ Congratulations! The contract is now signed by all parties and saved to your secure Contract Vault.
+                    <div class="deadline-alert">📅 <strong>Smart Deadline Reminders</strong><br>
+                        I've scanned the document for key dates and can send you WhatsApp/SMS alerts.
+                        <ul>
+                            <li><strong>First Invoice Due:</strong> Oct 15, 2025</li>
+                            <li><strong>Final Delivery:</strong> Nov 30, 2025</li>
+                        </ul>
+                    </div>
+                     <div class="quick-replies">
+                        <button class="quick-reply-btn" onclick="nextStep()">Yes, set reminders</button>
+                    </div>`, 'bot', '10:20 AM');
+                });
+            },
+
+            // Frame 9: Final Empowerment
+             () => {
+                 createMessage(`Yes, set reminders`, 'user', '10:21 AM');
+                 showTyping(() => {
+                    createMessage(`Reminders are set! You've gone from confusion to confidence. You are now empowered. 
+                        <br><br><strong>Legal GPS: Sign with confidence.</strong>`, 'bot', '10:22 AM');
+                 });
+            }
+
+        ];
+
+        function nextStep(data) {
+            if (step < conversation.length) {
+                conversation[step](data);
+                step++;
+            }
+        }
+        
+        // Start the conversation after a brief delay
+        setTimeout(nextStep, 500);
+
+    </script>
+</body>
+</html>
+
